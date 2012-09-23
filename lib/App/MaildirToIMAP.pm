@@ -75,9 +75,13 @@ sub usage {
 }
 
 sub open_maildir {
-    my ($class) = @_;
+    my ($class, $path, $create) = @_;
 
-    return Mail::Box::Maildir->new(folder => $_[0]);
+    return Mail::Box::Maildir->new(
+        folder => $path,
+        access => 'rw',
+        create => $create,
+    );
 }
 
 sub open_imap {
@@ -186,7 +190,11 @@ sub upload_message {
         $message,
         $self->imap_folder,
         $date,
-    );
+    ) or die "Error appending message: " . $self->imap_obj->LastError;
+}
+
+sub message_imported {
+    # no-op by default
 }
 
 1;
