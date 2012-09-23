@@ -10,6 +10,7 @@ WriteMakefile(
         'Test::More' => 0,
     },
     PREREQ_PM => {
+        'Class::Accessor::Fast' => 0,
         'DateTime::Format::Mail' => 0,
         'DateTime::Format::RFC3501' => 0,
         'Getopt::Long' => 0,

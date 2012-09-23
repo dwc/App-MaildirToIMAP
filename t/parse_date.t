@@ -6,8 +6,10 @@ use Test::More tests => 1 + 7*5;
 
 BEGIN { use_ok('App::MaildirToIMAP'); }
 
+my $class = 'App::MaildirToIMAP';
+
 {
-    my $dt = App::MaildirToIMAP::parse_date('Thu, 29 Mar 2012 15:50:02 +0000');
+    my $dt = $class->parse_date('Thu, 29 Mar 2012 15:50:02 +0000');
 
     isa_ok($dt, 'DateTime');
     is($dt->year, 2012, 'year matches');
@@ -19,7 +21,7 @@ BEGIN { use_ok('App::MaildirToIMAP'); }
 }
 
 {
-    my $dt = App::MaildirToIMAP::parse_date('Thu, 29 Mar 2012 15:22:42 -0400');
+    my $dt = $class->parse_date('Thu, 29 Mar 2012 15:22:42 -0400');
 
     isa_ok($dt, 'DateTime');
     is($dt->year, 2012, 'year matches');
@@ -31,7 +33,7 @@ BEGIN { use_ok('App::MaildirToIMAP'); }
 }
 
 {
-    my $dt = App::MaildirToIMAP::parse_date('Thu, 7 Sep 2006 8:19:27 -0400');
+    my $dt = $class->parse_date('Thu, 7 Sep 2006 8:19:27 -0400');
 
     isa_ok($dt, 'DateTime');
     is($dt->year, 2006, 'year matches');
@@ -43,7 +45,7 @@ BEGIN { use_ok('App::MaildirToIMAP'); }
 }
 
 {
-    my $dt = App::MaildirToIMAP::parse_date('Thu, 14 Sep 2006 17:50:32 +0000 GMT');
+    my $dt = $class->parse_date('Thu, 14 Sep 2006 17:50:32 +0000 GMT');
 
     isa_ok($dt, 'DateTime');
     is($dt->year, 2006, 'year matches');
@@ -55,7 +57,7 @@ BEGIN { use_ok('App::MaildirToIMAP'); }
 }
 
 {
-    my $dt = App::MaildirToIMAP::parse_date('Thu, 9 Jan 2003 13:16:47 -0500 (EST)');
+    my $dt = $class->parse_date('Thu, 9 Jan 2003 13:16:47 -0500 (EST)');
 
     isa_ok($dt, 'DateTime');
     is($dt->year, 2003, 'year matches');

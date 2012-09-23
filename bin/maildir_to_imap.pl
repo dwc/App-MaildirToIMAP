@@ -6,4 +6,4 @@ use App::MaildirToIMAP;
 
 $|++;
 
-App::MaildirToIMAP->run(@ARGV);
+App::MaildirToIMAP->new(@ARGV)->run;

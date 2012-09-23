@@ -2,18 +2,30 @@ package App::MaildirToIMAP;
 
 use strict;
 use warnings;
+use base 'Class::Accessor::Fast';
 use DateTime::Format::Mail;
 use DateTime::Format::RFC3501;
 use Getopt::Long qw();
 use Mail::Box::Maildir;
 use Mail::Transport::IMAP4;  # for direct access to appendMessage
 
+__PACKAGE__->mk_accessors(qw/
+    imap_server
+    imap_username
+    imap_password
+    imap_folder
+    imap_obj
+    maildir_path
+    maildir_obj
+    debug
+/);
+
 sub default_imap_server { 'imap.gmail.com' }
 sub default_imap_folder { 'INBOX' }
 sub default_debug { 0 }
 
-sub run {
-    my (@args) = @_;
+sub new {
+    my ($class, @args) = @_;
 
     my $imap_server = default_imap_server();
     my $imap_username;
@@ -30,34 +42,76 @@ sub run {
         'folder|f=s' => \$imap_folder,
         'maildir|m=s' => \$maildir_path,
         'debug|d!' => \$debug,
-    ) or die usage();
+    ) or die $class->usage;
 
-    die usage() if not $maildir_path;
+    die $class->usage if not $maildir_path;
 
-    my $maildir = open_maildir($maildir_path);
-    my $imap = open_imap($imap_server, $imap_username, $imap_password, $debug);
+    my $maildir_obj = $class->open_maildir($maildir_path);
+    my $imap_obj = $class->open_imap($imap_server, $imap_username, $imap_password, $debug);
+
+    my %self = (
+        imap_server => $imap_server,
+        imap_username => $imap_username,
+        imap_password => $imap_password,
+        imap_folder => $imap_folder,
+        imap_obj => $imap_obj,
+        maildir_path => $maildir_path,
+        maildir_obj => $maildir_obj,
+        debug => $debug,
+    );
+
+    bless \%self, $class;
+}
+
+sub usage {
+    return join(' ',
+        $0,
+        qq[--server <imap hostname>],
+        qq[--username <imap username>],
+        qq[--password <imap password>],
+        qq[--folder <imap folder>],
+        qq[--maildir <path to maildir>],
+    ) . "\n";
+}
+
+sub open_maildir {
+    my ($class) = @_;
+
+    return Mail::Box::Maildir->new(folder => $_[0]);
+}
+
+sub open_imap {
+    my ($class, $server, $username, $password, $debug) = @_;
+
+    my $client = Mail::IMAPClient->new(
+        Server => $server,
+        User => $username,
+        Password => $password,
+        Ssl => 1,
+        Uid => 1,
+        Debug => $debug,
+    );
+
+    return Mail::Transport::IMAP4->new(imap_client => $client);
+
+}
+
+sub run {
+    my ($self) = @_;
 
     my $num_imported = 0;
     my $num_skipped = 0;
     my $num_failed = 0;
 
-    foreach my $message ($maildir->messages) {
+    foreach my $message ($self->maildir_obj->messages) {
         print '.';
 
-        if (skip_message($message, $imap_username)) {
+        if ($self->skip_message($message, $self->imap_username)) {
             $num_skipped++;
         }
 
         eval {
-            my $dt = parse_date($message->head->get('Date'));
-            my $date = DateTime::Format::RFC3501->format_datetime($dt);
-
-            $imap->appendMessage(
-                $message,
-                $imap_folder,
-                $date,
-            );
-
+            $self->import_message($message);
             $num_imported++;
         };
         if ($@) {
@@ -74,39 +128,8 @@ sub run {
     print "Failed: $num_failed\n";
 }
 
-sub usage {
-    return join(' ',
-        $0,
-        qq[--server <imap hostname>],
-        qq[--username <imap username>],
-        qq[--password <imap password>],
-        qq[--folder <imap folder>],
-        qq[--maildir <path to maildir>],
-    ) . "\n";
-}
-
-sub open_maildir {
-    return Mail::Box::Maildir->new(folder => $_[0]);
-}
-
-sub open_imap {
-    my ($server, $username, $password, $debug) = @_;
-
-    my $client = Mail::IMAPClient->new(
-        Server => $server,
-        User => $username,
-        Password => $password,
-        Ssl => 1,
-        Uid => 1,
-        Debug => $debug,
-    );
-
-    return Mail::Transport::IMAP4->new(imap_client => $client);
-
-}
-
 sub skip_message {
-    my ($message, $username) = @_;
+    my ($self, $message, $username) = @_;
 
     my $skip_message = 0;
 
@@ -118,8 +141,23 @@ sub skip_message {
     return $skip_message;
 }
 
+sub import_message {
+    my ($self, $message) = @_;
+
+    $self->upload_message($message);
+    $self->message_imported($message);
+}
+
+sub format_date {
+    my ($self, $date) = @_;
+
+    my $dt = $self->parse_date($date);
+
+    return DateTime::Format::RFC3501->format_datetime($dt);
+}
+
 sub parse_date {
-    my ($date) = @_;
+    my ($self, $date) = @_;
 
     my $dt;
     eval {
@@ -137,6 +175,18 @@ sub parse_date {
     }
 
     return $dt;
+}
+
+sub upload_message {
+    my ($self, $message) = @_;
+
+    my $date = $self->format_date($message->head->get('Date'));
+
+    $self->imap_obj->appendMessage(
+        $message,
+        $self->imap_folder,
+        $date,
+    );
 }
 
 1;
