@@ -171,6 +171,9 @@ sub parse_date {
         # Add a leading zero to the hour if needed
         $date =~ s/(\d{4})\s+(\d:)/$1 0$2/;
 
+        # Add seconds if needed
+        $date =~ s/\s+(\d{2}:\d{2})\s+/ $1:00 /;
+
         $dt = DateTime::Format::Mail->parse_datetime($date);
         $dt->set_time_zone('GMT');
     };

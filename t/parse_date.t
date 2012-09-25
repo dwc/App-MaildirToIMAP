@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 1 + 7*5;
+use Test::More;
 
 BEGIN { use_ok('App::MaildirToIMAP'); }
 
@@ -67,3 +67,17 @@ my $class = 'App::MaildirToIMAP';
     is($dt->minute, 16, 'minute matches');
     is($dt->second, 47, 'second matches');
 }
+
+{
+    my $dt = $class->parse_date('Fri, 20 Aug 2004 07:57 -0400');
+
+    isa_ok($dt, 'DateTime');
+    is($dt->year, 2004, 'year matches');
+    is($dt->month, 8, 'month matches');
+    is($dt->day, 20, 'day matches');
+    is($dt->hour, 11, 'hour matches');
+    is($dt->minute, 57, 'minute matches');
+    is($dt->second, 0, 'second matches');
+}
+
+done_testing();
