@@ -193,7 +193,7 @@ sub upload_message {
         $message,
         $self->imap_folder,
         $date,
-    ) or die "Error appending message: " . $self->imap_obj->LastError;
+    ) or die "Error appending message: " . join(', ', $self->imap_obj->errors);
 }
 
 sub message_imported {
